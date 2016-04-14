@@ -1,0 +1,5 @@
+{
+	"name"     : "RemoteAssetSVN",
+	"info"     : "remote asset SVN support",
+	"active"   : true
+}
