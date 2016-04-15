@@ -8,9 +8,10 @@ r = svn.remote.RemoteClient(
 	password = '1103'
 	)
 
-# print r.info()
-for f in r.list( 'Doc' ):
+print r.info( 'Doc' )
+for f in r.list_recursive( 'Animation' ):
 	print f
+	# print r.info( f )
 
 # path = u'设定/TV_1.psd'
 # for log in r.log_default( ) :

@@ -3,8 +3,52 @@ from gii.core import app
 import svn
 import svn.remote
 import re
+import logging
+import os.path
+##----------------------------------------------------------------##
+def getRemoteInfo( client, path ):
+	try:
+		info = client.info( path )
+		return info
+	except Exception, e:
+		logging.exception( e )
+		return None
 
 ##----------------------------------------------------------------##
+def copyRemoteFile( client, srcPath, targetPath ):
+	try:
+		content = client.cat( srcPath )
+	except Exception, e:
+		return False
+	fp = open( targetPath, 'wb' )
+	fp.write( content )
+	fp.close()
+	return True
+
+##----------------------------------------------------------------##
+def copyRemoteTree( client, srcPath, targetPath ):
+	affirmedPath = {}
+	affirmedPath['.'] = True
+	os.mkdir( targetPath )
+	try:
+		for pathDir, entry in client.list_recursive( srcPath ):
+			relPath = os.path.relpath( pathDir, srcPath )
+			if relPath.startswith( './' ):
+				relPath = relPath[ 2: ]
+			if not affirmedPath.has_key( relPath ):
+				try:
+					os.mkdir( targetPath + '/' + relPath )
+					affirmedPath[ relPath ] = True
+				except Exception, e:
+					logging.exception( e )
+					#TODO: error info
+					return False
+			filePath = pathDir + '/' + entry['name']
+			targetFilePath = targetPath + '/' + relPath + '/' + entry['name']
+			copyRemoteFile( client, filePath, targetFilePath )
+	except Exception, e:
+		logging.exception( e )
+		return False
 
 
 ##----------------------------------------------------------------##
@@ -70,22 +114,26 @@ class RemoteFileProviderSVN( RemoteFileProvider ):
 		repoName, path = self.parsePath( sourcePath )
 		client = self.requestClientForRepo( repoName )
 		if not client: return False
+		return copyRemoteFile( client, path, targetPath )
 
-		try:
-			content = client.cat( path )
-		except Exception, e:
-			return False
-		fp = open( targetPath, 'wb' )
-		fp.write( content )
-		fp.close()
-		return True
 
 	def fetchTree( self, protocol, sourcePath, targetPath, context ):
 		if protocol != 'svn': return False
-		if os.path.isfile( sourcePath ):
-			shutil.copy2( sourcePath, targetPath )
-		elif os.path.isdir( sourcePath ):
-			shutil.copytree( sourcePath, targetPath )
+		repoName, path = self.parsePath( sourcePath )
+		client = self.requestClientForRepo( repoName )
+		if not client:
+			logging.warn( 'cannot init SVN client for repo:'+repoName )
+			return False
+		info = getRemoteInfo( client, path )
+		if not info:
+			logging.warn( 'fail to get remote info:' + path )
+			return False
+		if info[ 'entry_kind' ] == 'file':
+			return copyRemoteFile( client, path, targetPath )
+
+		elif info[ 'entry_kind' ] == 'dir':
+			return copyRemoteTree( client, path, targetPath )
+
 		return True
 
 	def getTimestamp( self, protocol, sourcePath, context ):
