@@ -114,8 +114,8 @@ class RemoteFileProviderSVN( RemoteFileProvider ):
 		repoName, path = self.parsePath( sourcePath )
 		client = self.requestClientForRepo( repoName )
 		if not client: return False
+		logging.info( u'fetch svn file {0}->{1}'.format( sourcePath, targetPath ) )
 		return copyRemoteFile( client, path, targetPath )
-
 
 	def fetchTree( self, protocol, sourcePath, targetPath, context ):
 		if protocol != 'svn': return False
@@ -129,6 +129,7 @@ class RemoteFileProviderSVN( RemoteFileProvider ):
 			logging.warn( 'fail to get remote info:' + path )
 			return False
 		if info[ 'entry_kind' ] == 'file':
+			logging.info( u'fetch svn file {0}->{1}'.format( path, targetPath ) )
 			return copyRemoteFile( client, path, targetPath )
 
 		elif info[ 'entry_kind' ] == 'dir':
@@ -139,6 +140,15 @@ class RemoteFileProviderSVN( RemoteFileProvider ):
 	def getTimestamp( self, protocol, sourcePath, context ):
 		if protocol != 'svn': return False
 		#TODO
-		return 0
+		repoName, path = self.parsePath( sourcePath )
+		client = self.requestClientForRepo( repoName )
+		if not client:
+			logging.warn( 'cannot init SVN client for repo:'+repoName )
+			return 0
+		info = getRemoteInfo( client, path )
+		if not info:
+			logging.warn( 'fail to get remote info:' + path )
+			return False
+		return info.get('commit_revision', info.get('commit#revision', 0 ) )
 
 registerRemoteFileProvider( RemoteFileProviderSVN() )

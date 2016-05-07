@@ -8,9 +8,9 @@ r = svn.remote.RemoteClient(
 	password = '1103'
 	)
 
-print r.info( 'Doc' )
-for f in r.list_recursive( 'Animation' ):
-	print f
+print r.info( 'Animation/Env' )[ 'commit#revision' ]
+# for f in r.list_recursive( 'Animation' ):
+# 	print f
 	# print r.info( f )
 
 # path = u'设定/TV_1.psd'

@@ -36,7 +36,8 @@ class CommonClient(object):
 
         p = subprocess.Popen(cmd, 
                              stdout=subprocess.PIPE, 
-                             stderr=subprocess.STDOUT)
+                             stderr=subprocess.STDOUT,
+                             bufsize=-1)
 
         stdout = p.stdout.read()
         r = p.wait()
